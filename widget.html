@@ -83,16 +83,16 @@ dell'addestramento, 83,2% sulla prova). Se il file non si carica, servite la car
 <div class="pct-pesi" id="pct-pesi"></div>
 </div>
 <div>
-<p class="pct-eti">IL VOSTRO DISEGNO SU QUEI PESI</p>
-<canvas id="pct-confronto" width="28" height="28" aria-label="il prodotto fra il disegno e i pesi della cifra scelta"></canvas>
-<p class="pct-stato" id="pct-rx-nota-viva">Disegnate, e qui si vede dove il disegno guadagna e perde punti.</p>
+<p class="pct-eti">LA GRIGLIA &times; QUEI PESI, PUNTO PER PUNTO</p>
+<canvas id="pct-confronto" width="28" height="28" aria-label="il prodotto, punto per punto, fra la griglia che il modello vede e i pesi della cifra scelta"></canvas>
+<p class="pct-stato" id="pct-rx-nota-viva">Disegnate: ogni punto della griglia viene moltiplicato per il suo peso, e qui se ne vede il risultato.</p>
 </div>
 </div>
 <p class="pct-scheda-nota">I dieci quadretti sono i pesi di ogni percettrone rimessi in
 griglia 28 &times; 28 (colore: segno; intensit&agrave;: grandezza): il ritratto che ogni
-cifra ha lasciato nell'addestramento. Il confronto sovrappone il disegno ai pesi della
-cifra scelta - di serie la vincitrice - e la somma dei punti guadagnati e persi &egrave;
-il numero delle barre. In tutto: 7.850 parametri, quantizzati a 8 bit, in 25 KB.</p>
+cifra ha lasciato nell'addestramento. Il confronto prende la griglia che il modello vede e la
+moltiplica, punto per punto, per i pesi della cifra scelta - di serie la vincitrice -
+e la somma dei punti guadagnati e persi &egrave; il numero delle barre. In tutto: 7.850 parametri, quantizzati a 8 bit, in 25 KB.</p>
 </details>
 </div>
 <script>
@@ -315,7 +315,7 @@ il numero delle barre. In tutto: 7.850 parametri, quantizzati a 8 bit, in 25 KB.
     const gc = cvConfronto.getContext("2d");
     gc.clearRect(0, 0, G, G);
     if (scelta === null || !ultimaGriglia) {
-      rxNota.textContent = "Disegnate, e qui si vede dove il disegno guadagna e perde punti.";
+      rxNota.textContent = "Disegnate: ogni punto della griglia viene moltiplicato per il suo peso, e qui se ne vede il risultato.";
       return;
     }
     const w = M[scelta].pesi, v = ultimaGriglia;
@@ -328,7 +328,7 @@ il numero delle barre. In tutto: 7.850 parametri, quantizzati a 8 bit, in 25 KB.
       if (a > massimo) massimo = a;
     }
     quadretto(cvConfronto, prodotto, massimo);
-    rxNota.textContent = "Cifra " + scelta + ": somma " +
+    rxNota.textContent = "Cifra " + scelta + ": la somma di tutti i punti dà " +
       somma.toFixed(1).replace(".", ",") +
       (cifraFissata === null ? " (la vincitrice)" : "");
   }
