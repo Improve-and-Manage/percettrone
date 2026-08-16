@@ -39,7 +39,26 @@ Dieci percettroni, 60000 esempi di addestramento.
 Giro 1: 76.2% di cifre riconosciute su 10000 mai viste.
 Giro 2: 83.2% di cifre riconosciute su 10000 mai viste.
 Giro 3: 74.5% di cifre riconosciute su 10000 mai viste.
+Pesi del giro migliore (2, 83.2%) salvati in pesi.json.
 ```
+
+## Il widget: disegnate un numero
+
+**`widget.html`** è lo stesso widget pubblicato nell'articolo: si disegna una
+cifra col mouse o col dito, e i dieci percettroni votano in diretta con le
+loro somme pesate - la più alta si accende, e un riquadro mostra ciò che il
+modello vede davvero (la griglia 28 × 28, riscalata e centrata come gli
+esempi di addestramento). Usa i pesi di `pesi.json`: quelli del giro migliore
+dell'addestramento, quantizzati a 8 bit (la stessa accuratezza, 83,2%,
+verificata dopo la quantizzazione). Per provarlo in locale:
+
+```
+$ python3 -m http.server
+```
+
+e poi aprite <http://localhost:8000/widget.html>. Quando sbaglia - capiterà:
+un percettrone è una retta - guardate le barre: spesso la cifra giusta è lì,
+seconda per un soffio.
 
 ## Perché il punteggio oscilla invece di salire
 
