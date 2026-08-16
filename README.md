@@ -48,7 +48,10 @@ Pesi del giro migliore (2, 83.2%) salvati in pesi.json.
 cifra col mouse o col dito, e i dieci percettroni votano in diretta con le
 loro somme pesate - la più alta si accende, e un riquadro mostra ciò che il
 modello vede davvero (la griglia 28 × 28, riscalata e centrata come gli
-esempi di addestramento). Usa i pesi di `pesi.json`: quelli del giro migliore
+esempi di addestramento). La radiografia, ripiegata sotto il widget, mostra i
+pesi di ogni cifra rimessi in griglia - il ritratto che ogni percettrone ha
+della sua cifra - e il disegno sovrapposto a quei pesi: dove guadagna punti e
+dove li perde. Usa i pesi di `pesi.json`: quelli del giro migliore
 dell'addestramento, quantizzati a 8 bit (la stessa accuratezza, 83,2%,
 verificata dopo la quantizzazione). Per provarlo in locale:
 

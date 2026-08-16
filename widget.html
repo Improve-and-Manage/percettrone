@@ -41,6 +41,23 @@ p.nota{color:var(--tenue);font-size:0.85rem;max-width:36rem;margin:0}
   border:1px solid var(--filetto);border-radius:6px;padding:0 0.5rem;cursor:pointer}
 #pct-cancella:hover{border-color:var(--accento)}
 .pct-stato{font-family:ui-monospace,monospace;font-size:0.75rem;color:var(--tenue);margin:0.6rem 0 0}
+.pct-scheda{grid-column:1 / -1;border-top:1px solid var(--filetto);padding-top:0.6rem}
+.pct-scheda summary{font-family:ui-monospace,monospace;font-size:0.7rem;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--accento);cursor:pointer}
+.pct-scheda summary:hover{color:var(--testo)}
+.pct-scheda-nota{font-size:0.85rem;color:var(--tenue);margin:0.6rem 0 0}
+.pct-rx-corpo{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:0.6rem}
+.pct-pesi{display:grid;grid-template-columns:repeat(5,max-content);gap:0.6rem}
+.pct-peso{display:grid;justify-items:center;gap:2px;padding:0.25rem;background:var(--sfondo);
+  border:1px solid var(--filetto);border-radius:6px;cursor:pointer;
+  font-family:ui-monospace,monospace;font-size:0.7rem;color:var(--tenue)}
+.pct-peso canvas{width:56px;height:56px;image-rendering:pixelated;display:block}
+.pct-peso:hover{border-color:var(--accento)}
+.pct-peso.attiva{border-color:var(--accento);color:var(--accento)}
+#pct-confronto{width:112px;height:112px;image-rendering:pixelated;background:var(--sfondo);
+  border:1px solid var(--filetto);border-radius:6px;display:block}
+.pct-tinta-accento{color:var(--accento)}
+.pct-tinta-secondario{color:var(--secondario)}
 </style>
 <body>
 <h1>Il percettrone che legge i vostri numeri</h1>
@@ -58,6 +75,25 @@ dell'addestramento, 83,2% sulla prova). Se il file non si carica, servite la car
 <div id="pct-barre" aria-label="le somme pesate delle dieci cifre"></div>
 <p class="pct-stato" id="pct-stato" role="status">Carico i pesi (25 KB)&hellip;</p>
 </div>
+<details class="pct-scheda" id="pct-rx">
+<summary>LA RADIOGRAFIA &middot; I PESI, IL CONFRONTO, IL VOTO</summary>
+<div class="pct-rx-corpo">
+<div>
+<p class="pct-eti">I PESI DI OGNI CIFRA &middot; SONO ANCHE PULSANTI</p>
+<div class="pct-pesi" id="pct-pesi"></div>
+</div>
+<div>
+<p class="pct-eti">IL VOSTRO DISEGNO SU QUEI PESI</p>
+<canvas id="pct-confronto" width="28" height="28" aria-label="il prodotto fra il disegno e i pesi della cifra scelta"></canvas>
+<p class="pct-stato" id="pct-rx-nota-viva">Disegnate, e qui si vede dove il disegno guadagna e perde punti.</p>
+</div>
+</div>
+<p class="pct-scheda-nota">I dieci quadretti sono i pesi di ogni percettrone rimessi in
+griglia 28 &times; 28 (colore: segno; intensit&agrave;: grandezza): il ritratto che ogni
+cifra ha lasciato nell'addestramento. Il confronto sovrappone il disegno ai pesi della
+cifra scelta - di serie la vincitrice - e la somma dei punti guadagnati e persi &egrave;
+il numero delle barre. In tutto: 7.850 parametri, quantizzati a 8 bit, in 25 KB.</p>
+</details>
 </div>
 <script>
 /* Il widget del percettrone: si disegna una cifra col mouse o col dito,
@@ -100,7 +136,7 @@ dell'addestramento, 83,2% sulla prova). Se il file non si carica, servite la car
     gt.fillRect(0, 0, LATO, LATO);
     gt.globalCompositeOperation = "source-over";
   }
-  function cambioTema() { inchiostro = null; ritingi(); disegnaMini(ultimaGriglia); }
+  function cambioTema() { inchiostro = null; ritingi(); disegnaMini(ultimaGriglia); ridisegnaPesi(); }
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", cambioTema);
   new MutationObserver(cambioTema).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
@@ -209,13 +245,107 @@ dell'addestramento, 83,2% sulla prova). Se il file non si carica, servite la car
     return g.getImageData(0, 0, 1, 1).data;
   }
 
+  /* ---- la radiografia: i pesi di ogni cifra, il confronto, il voto ---- */
+  const rx = document.getElementById("pct-rx");
+  const elPesi = document.getElementById("pct-pesi");
+  const cvConfronto = document.getElementById("pct-confronto");
+  const rxNota = document.getElementById("pct-rx-nota-viva");
+  let cifraFissata = null;   // null: il confronto segue la vincitrice
+  let vincitriceOra = null;
+  const bottoniPeso = [];
+  let tinteRx = null;
+  function tinta(classe) {
+    const s = document.createElement("span");
+    s.className = classe; s.style.display = "none";
+    document.body.appendChild(s);
+    const colore = getComputedStyle(s).color;
+    s.remove();
+    const g = cvTinta.getContext("2d", { willReadFrequently: true });
+    g.clearRect(0, 0, 1, 1); g.fillStyle = colore; g.fillRect(0, 0, 1, 1);
+    return g.getImageData(0, 0, 1, 1).data.slice(0, 3);
+  }
+  function tinteCorrenti() {
+    if (!tinteRx) tinteRx = { piu: tinta("pct-tinta-accento"), meno: tinta("pct-tinta-secondario") };
+    return tinteRx;
+  }
+  /* colore = segno, intensita' = grandezza: la stessa grammatica delle
+     strisce del piccolo GPT */
+  function quadretto(cv, valori, massimo) {
+    const g2 = cv.getContext("2d");
+    const img = g2.createImageData(G, G);
+    const t = tinteCorrenti();
+    for (let i = 0; i < G * G; i++) {
+      const val = valori[i] / massimo;
+      const c = val >= 0 ? t.piu : t.meno;
+      const o = i * 4;
+      img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2];
+      img.data[o + 3] = Math.min(255, Math.round(Math.abs(val) * 255));
+    }
+    g2.putImageData(img, 0, 0);
+  }
+  function disegnaPesi() {
+    if (!M || bottoniPeso.length) return;
+    for (let c = 0; c < 10; c++) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "pct-peso";
+      b.setAttribute("aria-pressed", "false");
+      const cv = document.createElement("canvas");
+      cv.width = G; cv.height = G;
+      const eti = document.createElement("span"); eti.textContent = c;
+      b.append(cv, eti);
+      let massimo = 1e-9;
+      for (const w of M[c].pesi) if (Math.abs(w) > massimo) massimo = Math.abs(w);
+      quadretto(cv, M[c].pesi, massimo);
+      b.addEventListener("click", () => {
+        cifraFissata = cifraFissata === c ? null : c;
+        disegnaRx();
+      });
+      elPesi.appendChild(b);
+      bottoniPeso.push({ b, cv, massimo });
+    }
+  }
+  function disegnaRx() {
+    if (!rx || !rx.open || !M) return;
+    disegnaPesi();
+    const scelta = cifraFissata !== null ? cifraFissata : vincitriceOra;
+    bottoniPeso.forEach((p, c) => {
+      p.b.classList.toggle("attiva", c === scelta);
+      p.b.setAttribute("aria-pressed", c === scelta ? "true" : "false");
+    });
+    const gc = cvConfronto.getContext("2d");
+    gc.clearRect(0, 0, G, G);
+    if (scelta === null || !ultimaGriglia) {
+      rxNota.textContent = "Disegnate, e qui si vede dove il disegno guadagna e perde punti.";
+      return;
+    }
+    const w = M[scelta].pesi, v = ultimaGriglia;
+    const prodotto = new Float32Array(G * G);
+    let massimo = 1e-9, somma = 0;
+    for (let i = 0; i < G * G; i++) {
+      prodotto[i] = w[i] * v[i];
+      somma += prodotto[i];
+      const a = Math.abs(prodotto[i]);
+      if (a > massimo) massimo = a;
+    }
+    quadretto(cvConfronto, prodotto, massimo);
+    rxNota.textContent = "Cifra " + scelta + ": somma " +
+      somma.toFixed(1).replace(".", ",") +
+      (cifraFissata === null ? " (la vincitrice)" : "");
+  }
+  function ridisegnaPesi() {
+    tinteRx = null;
+    bottoniPeso.forEach((p, c) => quadretto(p.cv, M[c].pesi, p.massimo));
+    disegnaRx();
+  }
+  if (rx) rx.addEventListener("toggle", disegnaRx);
+
   /* ---- il voto: dieci somme pesate, vince la piu' alta ---- */
   function riconosci() {
     if (!M) return;
     const v = griglia28();
     ultimaGriglia = v;
     disegnaMini(v);
-    if (!v) { azzeraBarre(); return; }
+    if (!v) { azzeraBarre(); vincitriceOra = null; disegnaRx(); return; }
     const somme = M.map((p) => {
       let s = 0;
       for (let i = 0; i < v.length; i++) s += p.pesi[i] * v[i];
@@ -234,6 +364,8 @@ dell'addestramento, 83,2% sulla prova). Se il file non si carica, servite la car
       r.riga.classList.toggle("vince", c === vincitrice);
     });
     stato.textContent = "La somma più alta dice: " + vincitrice + ".";
+    vincitriceOra = vincitrice;
+    disegnaRx();
   }
 
   /* ---- il disegno, con mouse e dito ---- */
@@ -267,7 +399,8 @@ dell'addestramento, 83,2% sulla prova). Se il file non si carica, servite la car
   document.getElementById("pct-cancella").addEventListener("click", () => {
     gm.clearRect(0, 0, LATO, LATO);
     ultimaGriglia = null;
-    ritingi(); disegnaMini(null); azzeraBarre();
+    vincitriceOra = null;
+    ritingi(); disegnaMini(null); azzeraBarre(); disegnaRx();
     stato.textContent = "Disegnate una cifra grande, al centro.";
   });
 })();
